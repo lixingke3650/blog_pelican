@@ -52,4 +52,55 @@ OUTPUT_PATH = './html/'
 DISPLAY_PAGES_ON_MENU = 0
 DISPLAY_CATEGORIES_ON_MENU = 1
 
-THEME = './themes/gum'
+THEME = './themes/elegant'
+
+# For Elegant theme
+HOSTED_ON = {
+    "name": 'Lixingke3650',
+    "url": 'http://133.167.106.55'
+}
+
+LANDING_PAGE_TITLE = "Welcome to lixingke3650's personal blog!"
+
+PROJECTS = [
+    {
+        'name': 'OrTunnel',
+        'url': 'hhttps://github.com/lixingke3650/OrTunnel',
+        'description': 'Secure data transmission on Ethernet',
+    },
+    {
+        'name': 'OrHttpConnect',
+        'url': 'https://github.com/lixingke3650/OrHttpConnect',
+        'description': 'Network breakthrough over HTTP proxy',
+    },
+    {
+        'name': 'ORRO',
+        'url': 'https://github.com/lixingke3650/ORRO',
+        'description': 'HTTP Proxy for Python, can be deployed on cloud server',
+    },
+    {
+        'name': 'OrWG',
+        'url': 'https://github.com/lixingke3650/OrWG',
+        'description': 'Fast, modern, secure kernel VPN tunnel, forks from WireGuard',
+    },
+    {
+        'name': 'OrWG-Go',
+        'url': 'https://github.com/lixingke3650/OrWG-Go',
+        'description': 'Fast, modern, secure kernel VPN tunnel - Go Implementation, forks from WireGuard',
+    },
+    {
+        'name': 'OrWG-tools',
+        'url': 'https://github.com/lixingke3650/OrWG-tools',
+        'description': 'tools for configuring OrWG and OrWG-Go, forks form WireGuard',
+    },
+    {
+        'name': 'blog_pelican',
+        'url': 'https://github.com/lixingke3650/blog_pelican',
+        'description': 'My static blog powered by Pelican',
+    },
+    {
+        'name': 'OrWebSite',
+        'url': 'https://github.com/lixingke3650/OrWebSite',
+        'description': 'My web site powered by Django',
+    },
+]
