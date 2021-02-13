@@ -60,10 +60,12 @@ clean:
 	@rm -rf $(OUTPATH)
 	@echo 'revome link for rst or md source ...'
 	@rm -f $(INPUTPATH)
-	@echo 'revome some cache ...'
+	@echo 'revome py cache ...'
 	@rm -rf $(CACHE)
-	@rm -f $(PREVIEWHTMLPATH)
+	@echo 'remove preview cache ...'
 	@rm -rf $(PREVIEWOUTPUTPATH)
+	@rm -rf $(PREVIEWINPUTPATH)
+	@rm -f $(PREVIEWOUTPUTPATH)
 
 remove:
 	@echo '-- Not completed --'
