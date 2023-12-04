@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 
 AUTHOR = 'Hanbin'
 SITENAME = 'lixingke3650'
-SITEURL = 'http://127.0.0.1/blog/preview'
+SITEURL = 'http://192.168.56.101:55180/blog/preview'
 
 # PATH = 'content'
 #FEED_DOMAIN = 'static'
@@ -12,7 +12,7 @@ SITEURL = 'http://127.0.0.1/blog/preview'
 
 TIMEZONE = 'Asia/Tokyo'
 
-DEFAULT_LANG = 'jp'
+DEFAULT_LANG = 'ja'
 
 # Feed generation is usually not desired when developing
 FEED_ALL_ATOM = None
@@ -57,7 +57,7 @@ THEME = './themes/elegant'
 # For Elegant theme
 HOSTED_ON = {
     "name": 'Lixingke3650',
-    "url": 'http://133.167.106.55'
+    "url": 'http://192.168.56.101:55180'
 }
 
 LANDING_PAGE_TITLE = "Welcome to lixingke3650's personal blog!"
