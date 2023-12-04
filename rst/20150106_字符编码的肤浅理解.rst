@@ -1,0 +1,198 @@
+字符编码的肤浅理解
+#########################
+
+:title: 字符编码的肤浅理解
+:date: 2015-01-07 21:00
+:category: 学习
+:tags: 字符编码, Python, bytes&str, UTF-8, Unicode, UCS
+:author: Hanbin
+
+------
+
+起因
+====
+
+python写的网络通信程序，
+想从python2迁移到python3，
+发现socket的recv与send函数发生了变化。
+主要是参数(发送或接受的数据)由py2时的字符串(str)
+变为了py3的字节串(bytes,就叫它字节串吧)。
+python2极大模糊了数据类型，虽然方便了程序员快速编码，
+但也影响了程序员对数据的理解。
+可能发现了bytes数据在某些场合下有着重要作用，
+python3中增加了此数据类型。
+一个明显的应用就是网络通信。
+
+------
+
+由字符编码引起的问题
+=====================
+
+下面这两段代码，分别运行在
+python2，python3下，有着相同的效果。
+每次从socket中读取一个字符(可能用词不准确)，
+若该字符是汉字'止',则停止通信。
+用汉字作为结束判定符不是个好主意，
+这里仅为了发现和说明问题。
+
+在读代码之前需要了解：
+
+  * python2中socket.recv返回的是str
+  * pyhton3中socket.recv返回的是bytes
+
+.. code-block:: Python
+
+    [python2]
+    #! C:\Python\Python2\python
+    # -*- coding: utf-8 -*-
+    # Filename: test.py
+
+    # 送信代码
+    # mySocket.send( msg )
+
+    while True :
+        try :
+            buf = mySocket.recv( 2 )
+            if buf == '止'.decode('utf8').encode('cp936'):
+                print( 'exit!' )
+                break
+      
+    [python3]
+    #! C:\Python\Python3\python
+    # -*- coding: utf-8 -*-
+    # Filename: test.py
+
+    # 送信代码
+    # mySocket.send( msg.encode( 'utf-8' ) )
+
+    while True :
+        try :
+            buf = mySocket.recv( 3 )
+            if buf == '止'.encode('utf8'):
+                print( 'exit!' )
+                break
+  
+这段代码中有两处让我疑惑的地方：  
+
+* encode与decode  
+* recv的参数，即读取的size  
+  
+------
+
+问题的解决
+==========
+
+UCS、Unicode和UTF8
+---------------------
+
+UCS(Universal Coded Character Set,
+原名Universal Multiple-Octet Coded Character Set)
+是国际标准化组织(International Organization for Standardization)
+制定的标准字符集。(ISO/IEC 10646)
+
+Unicode,由统一码联盟(The Unicode Consortium)创建的，
+旨在取代现有所有的字符编码。
+Unicode标准除了字符编码外，还包括视觉上的字形，字符特性等。
+
+当两个标准僵持不下最终会阻碍业界进步，
+两个组织也认识到这一点，并做了大量的统一工作。
+从Unicode2.0开始，将采用与UCS相同的字库及编码标准(目前最新版本为7.0)，
+因此从字符编码角度来说，两者基本一致。
+
+UTF8(8-bit Unicode Transformation Format),
+是对Unicode的可变长度字符编码，是一种前缀码，
+可以用来表示Unicode中的任何字符。
+可变长度是指当表示ACS2码时只用一个字节即可，而表示较复杂字符时，
+会采用多位字节。而多位字节的字节数则由首位字节前几位给出。
+例如表示ACS2码时UTF8的二进制形式为：
+
+  ** 0xxxxxxx **
+  
+表示汉字时(以三个字节为例)：
+
+  ** 1110xxxx 10xxxxxx 10xxxxxx **
+  
+其中的x即字符的Unicode编码的二进制形式。
+
+说到这里，大体明白了UTF8就是对Unicode的一种再编码，
+既然已经有了Unicode，为什么还要UTF8呢。
+我觉得主要原因是:
+
+* ** 兼容现有的字符系统 **
+* ** 节省存储空间 **
+
+UTF8在表示ACS2时与之前的编码方式并无不同，且只需要一个字节，
+而Unicode可能需要两个字节，且与之前的编码方式不兼容(填充0)。
+也因此，当文档有大量ACS2字符时，UTF8可节省空间。
+相反如果文档大部分由复杂字符组成时，
+UTF8占用的存储空间要大于Unicode。
+
+下面是一个Unicode转换为UTF8的对应表，
+左边是字符Unicode编码的范围，
+右侧是UTF8的模版，
+x是Unicode编码的二进制形式。
+
++------------------+-------------------------------------------------------------------+
+| UCS(Unicode)编码  | UTF8 字节                                                        |
++==================+===================================================================+
+| U+00000000       | U+0000007F  0xxxxxxx                                              |
++------------------+-------------------------------------------------------------------+
+| U+00000080       | U+000007FF  110xxxxx 10xxxxxx                                     |
++------------------+-------------------------------------------------------------------+
+| U+00000800       | U+0000FFFF  1110xxxx 10xxxxxx 10xxxxxx                            |
++------------------+-------------------------------------------------------------------+
+| U+00010000       | U+001FFFFF  11110xxx 10xxxxxx 10xxxxxx 10xxxxxx                   |
++------------------+-------------------------------------------------------------------+
+| U+00200000       | U+03FFFFFF  111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx          |
++------------------+-------------------------------------------------------------------+
+| U+04000000       | U+7FFFFFFF  1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx |
++------------------+-------------------------------------------------------------------+
+
+Python　socket.recv(size)
+-----------------------------
+
+有了字符编码的知识储备，理解recv的size就容易了很多。
+前文中的例子，Python3以utf8编码传输，且socket的send，recv函数
+都是以bytes为参数，读取3byte正好为一个汉字字符。
+Python2中并没有强制要求传输bytes，代码中直接发送了str，
+(可能直接传送了Unicode编码)，
+故接受2字节恰好为一个汉字字符。
+
+简单说一下Python的encode和decode函数。
+
+Python内部是以Unicode来处理字符数据的，
+encode函数将Unicode编码的数据编码为其他指定的格式:
+
+.. code-block:: Python
+
+    str = u'你好'
+    str_utf = str.encode('utf-8')
+
+decode函数将某编码的数据解码为Unicode数据:
+
+.. code-block:: Python
+
+    str = u'你好'
+    str_utf = str.encode('utf-8')
+    str_unicode = str_utf.decode('utf-8')
+
+另外，python对数据的编码与对代码文件的识别是两个不同的东西，
+不要搞混了。
+
+总结
+====
+
+总结就写的清楚简单一点吧。
+
+* **Unicode是标准字符编码，为方便Unicode编码的保存与传输，提出了UTF8编码。**
+* **Unicode是一种无理码，没有什么规律可言，所以保存或传送数据还是尽可能的使用UTF8吧(UTF16,UTF32)。**
+* **Python2与Python3在网络通信中对数据的处理不同，请提前做好兼容性工作。**
+
+
+本文内容不多，主要参考了维基百科和各前辈们的文章。
+
+以上。
+
+20150107
+
+2015,加油！

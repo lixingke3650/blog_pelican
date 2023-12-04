@@ -1,0 +1,31 @@
+适用于BAE的APJP
+######################
+
+:title: 适用于BAE的APJP
+:date: 2014-05-21 16:00
+:category: 项目
+:tags: BAE, APJP
+:author: Hanbin
+
+适用于BAE的APJP
+==================
+
+**APJP** 是一个HTTP，HTTPS代理工具，与GAE等云服务配合可实现跨墙。稳定性非常不错。
+
+**BAE** 是百度推出的云服务，测试阶段提供每天500M的免费流量，遗憾的是目前已经全部付费了。
+
+这里提供一个可用于BAE的APJP(Python)，原因嘛，有出就有进是不^_^.  
+
+* **https://github.com/lixingke3650/APJP-BAE-Python-**
+
+空间内只上传了修改了的文件，需覆盖原版APJP方可使用。
+
+修改内容
+========
+
+BAE的Socket使用方法稍有不同，小改一下即可。
+
+使用与传播请尊重APJP原作者利益。
+
+
+以上。

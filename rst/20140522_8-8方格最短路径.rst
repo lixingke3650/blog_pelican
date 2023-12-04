@@ -1,0 +1,143 @@
+8*8方格最短路径条数求解
+###############################
+
+:title: 8*8方格最短路径条数求解
+:date: 2014-05-22 11:40
+:category: 学习
+:tags: 最短路径, 算法, 回溯
+:author: Hanbin
+
+8*8方格最短路径求解
+===================
+
+遇到这样一道题:
+
+给定一个8*8的方格子，求A点(左下角)到B点(右上角)的最短路径有多少条。用算法实现。
+
+--------
+
+先提供一个编程解决方法吧。Python代码如下:
+
+.. code-block:: Python
+
+    MAXX = 8
+    MAXY = 8
+    count = 0
+      
+      
+    def funfun(nx, ny):
+        global count
+        if( nx == 0 ):
+            count += 1
+        elif( ny == 0 ):
+            count += 1
+        else:  
+            funfun(nx-1,ny)
+            funfun(nx,ny-1)
+
+    funfun(MAXX, MAXY)
+    print(count)
+
+一个迭代的方法,既然求最短路径，那么就不能往回走，且无论X还是Y，到达边界后则完成一次路径。  
+
+当然这是去除不必要的情况后得出的简单方法。  
+
+--------
+
+如不优化到边界，而考虑到达最后终点点，下面的代码应该可以:  
+
+.. code-block:: Python
+    
+    MAXX = 8
+    MAXY = 8
+    SETPNUM = 16
+    count = 0
+    step = -1
+
+    def fun(nx, ny):  
+        global count  
+
+        # 到达B点  
+        if( nx == 0 and ny == 0 ):  
+            count += 1  
+            return  
+
+        if( nx == 0 ):  
+            funfun(nx,ny-1)  
+        elif( ny == 0 ):  
+            funfun(nx-1,ny)  
+        else:  
+            funfun(nx-1,ny)  
+            funfun(nx,ny-1)  
+
+    fun(MAXX, MAXY)  
+    print(count) 
+
+--------
+
+若不考虑只能前进的情况，则比较复杂:
+
+* 需预先算出最短路径，若行进路线超出最短路径则放弃
+* 对行进过的路线进行标记，不走重复路径(有重复路径必定不是最短路径)
+
+代码如下:  
+    
+.. code-block:: Python
+
+    MAXX = 8
+    MAXY = 8
+    SETPNUM = 16
+    count = 0
+    step = -1
+
+    # node经过置1 未经过置0
+    node = [[0 for i in range(MAXX+1)] for i in range(MAXY+1)]
+
+    def funfunfun(x, y):
+        global count
+        global step
+        global MAXX
+        global MAXY
+        global SETPNUM
+
+        if( x > MAXX or x < 0 or y > MAXY or y < 0):
+            return
+
+        if( node[x][y] == 1 ):
+            return
+
+        if( x == MAXX and y == MAXY ):
+            count += 1
+            return
+
+        node[x][y] = 1
+        
+        step += 1
+        # 超出最小步数则舍弃
+        if(step >= SETPNUM):
+            # 回溯
+            node[x][y] = 0
+            step -= 1
+            return
+
+        funfunfun(x+1, y)
+        funfunfun(x-1, y)
+        funfunfun(x, y+1)
+        funfunfun(x, y-1)
+
+        # 回溯
+        node[x][y] = 0
+        step -= 1
+
+    count = 0
+    funfunfun( 0, 0 )
+    print( count )
+
+采用回溯法，即经过该点时将其标记，并以此点为起点进行进一步遍历。  
+遍历完成后取消改点标记，返回上层。  
+此方法虽不会有重复路径，但遍历了所有可能的路径，  
+(事先计算出最短路径，超出最短路径长度的舍弃，若非如此则需花费更多资源)
+故消耗资源较大。有进一步优化空间。  
+  
+  
+以上。  

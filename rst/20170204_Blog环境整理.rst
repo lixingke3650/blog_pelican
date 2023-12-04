@@ -1,0 +1,71 @@
+Blog环境整理
+##############
+
+:title: Blog环境整理
+:date: 2017-02-04 10:00
+:category: 整理
+:tags: Blog, Pelican, Dropbox
+:author: Hanbin
+
+
+Blog更新环境不方便，写起来束手束脚的，也没什么动力更新了。
+找了个时间把环境重新整理一下，发个记录看看效果。
+
+与之前相比稍微变化了些。
+
+* 以前的静态Blog一直放在GitHub主页上，这次移到VPS上来，原来的GitHub也同步更新。
+* Blog原文件由MakeDown改为reStructureTest，存放在Dropbox上，GitHub仓库中的内容删除掉。
+* 还是使用Pelican来生成html。
+
+------
+
+Dropbox
+=========
+
+Blog原文件基本不需要版本管理，放到GitHub上有些浪费，每次查看也不够方便。
+改放到Dropbox上就好多了。
+
+Linux命令行下的Dropbox使用方法也很简单，一个Dropbox程序外加一个脚本就可以很好的工作。
+
+程序和脚本都是官方提供的。（需反封建反迷信上网）
+
+::
+
+    程序： https://www.dropbox.com/install-linux
+    脚本： https://www.dropbox.com/download?dl=packages/dropbox.py
+
+程序我下载的是命令行版，直接解压就行。
+需要说明的是，程序默认是解压放在/home/user/.dropbox-dist下面的，
+如果路径不一致的话，需要更改脚本中DROPBOXD_PATH变量指向自己放置dropboxd的路径。
+另外，PARENT_DIR变量是指Dropbox运行根目录，默认为当前登录账户的用户目录（～）。
+我自己有时候会在误操作在root下面启动dropbox，结果路径与之前不同，导致同步失败。
+所以我将PARENT_DIR固定成自己的账户 （/home/hanbin）。
+
+将脚本添加到系统路径中（比如/usr/sbin），执行 dropbox start就可以了。
+为了节省资源，我将lansync关闭了。
+关于脚本的详细用法，可以dropbox help来查看。
+另外，第一次使用时，需要验证本机的合法性。
+首先执行dropboxd,然后会要求访问一个网址。将该网址复制到一个浏览器地址栏里打开即可。
+（该浏览器不需要与dropbox在同一台电脑上）
+
+Pelican
+=========
+
+Pelican可以将reStructureTest或MakeDown文档转换为html，是生成静态Blog的一个工具。
+
+配置可以参考官方手册： http://docs.getpelican.com/en/stable/
+
+更改一下配置文件，指定主题啊什么的就可以了，非常简单。
+
+我修改了一下原来的MakeFile，可以直接从Dropbox路径下取得Blog原文件（reST），生成html，
+并传到VPS的web服务器指定路径下，也可以更新到GitHub主页里。
+
+在任何有网络的地方写日记，并更新到Dropbox里后，登录VPS make一下，就可以啦～～～
+
+
+以上
+20170204
+
+过年回去，看到大家都很不错。
+我需要坚持，坚持的心性。
+

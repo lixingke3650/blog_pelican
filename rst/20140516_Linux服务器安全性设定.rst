@@ -1,0 +1,160 @@
+Linux服务器安全性设定
+############################
+
+:title: Linux服务器安全性设定
+:date: 2014-05-16 17:50
+:category: 整理
+:tags: Linux, Security
+:author: Hanbin
+
+相比于Windows，Linux给人的印象是稳定以及安全。  
+且不讨论这种判断或者印象的准确与否，再稳定的系统也需要合适的维护。  
+本文从以下几方面来说明适合于Linux的安全对策。  
+
+* SSH登录配置
+* 文件篡改检测
+* rootkit检测
+* 反病毒软件安装
+* 无用服务的停止
+* 缓冲区溢出防止
+* 防火墙配置  
+
+
+SSH登录配置
+===========
+
+禁用root远程登录
+----------------
+
+个人认为相比于直接开放root账户，利用普通账户登录，必要时su提权的方法，要安全一些。  
+(要经过两层密码嘛^_^)  
+故停止root账户的SSH登录，开放普通用户的登录权限。
+
+::
+
+  // 新建账户  
+  # useradd userx  
+  # passwd userx  
+   
+  // 加入wheel组(此组内用户可su提权至root)  
+  # usermod -G wheel userx  
+  # vi /etc/pam.d/su  
+   　　做如下变更:  
+   　　#auth required pam_wheel.so use_uid  
+   　　↓  
+   　　auth required pam_wheel.so use_uid  
+   
+  // root登录禁止  
+  # vi /etc/ssh/sshdconfig  
+   　　做如下变更:  
+   　　#PermitRootLogin yes  
+   　　↓  
+   　　PermitRootLogin no  
+   
+   　　#PermitEmptyPasswords no  
+   　　↓  
+   　　PermitEmptyPasswords no  
+
+SSH端口更改
+-----------
+
+SSH默认端口为22，更改后可一定长度上隐藏SSH登录入口，提高安全性
+
+  \# vi /etc/ssh/sshd_config  
+  　　做如下更改  
+  　　\#Port 22  
+  　　Port xxxx(任意端口，请牢记)  
+
+以后利用Putty等工具登录时，注意修改端口
+
+
+利用证书实现SSH登录认证
+------------------------
+
+待补充
+
+
+文件篡改检测
+============
+  
+借助工具"Tripwite"来实现文件检测，发现被改动的文件。
+  
+下面是工作时整理的日文文档，就不翻译了。  
+具体过程是： 编译安装->配置->周期检测  
+  
+------
+
+::
+
+    ①Tripwiteインストール(コンパイル方式)  
+     \# cd /tmp  
+     \# wget http://sourceforge.net/projects/tripwire/files/latest/download  
+     \# tar -xvf tripwire-2.4.2.2-src.tar.bz2  
+     \# cd tripwire-2.4.2.2-src  
+     \# ./configure --prefix=/usr/local/tripwire   ←　/usr/local/tripwireにインストールする  
+     \# make  
+     \# make install  
+      
+        インストール中の質問：
+        Enter the site keyfile passphrase:      ←　任意のサイトパスフレーズを入力 (覚えてください)
+        Verify the site keyfile passphrase:     ←　任意のサイトパスフレーズを入力（確認）
+
+        Enter the local keyfile passphrase:     ←　任意のローカルパスフレーズを入力 (覚えてください)
+        Verify the local keyfile passphrase:    ←　任意のローカルパスフレーズを入力（確認）
+      
+      The installation succeeded. -- インストール成功  
+
+    ②Tripwite設定  
+
+        ・設定ファイル  
+          # cp /usr/local/tripwire/etc/twcfg.txt /usr/local/tripwire/etc/twcfg.txt.bak      ←　設定ファイルバックアップ  
+          # vi /usr/local/tripwire/etc/twcfg.txt    ←　設定ファイル  
+            次の変更をやります  
+            LOOSEDIRECTORYCHECKING =true  
+            EMAILREPORTLEVEL =4  
+            REPORTLEVEL =4  
+        
+        # /usr/local/tripwire/sbin/twadmin -m F -c /usr/local/tripwire/etc/tw.cfg -S /usr/local/tripwire/etc/site.key /usr/local/tripwire/etc/twcfg.txt
+        ←　暗号化設定ファイル作成
+        # rm -f /usr/local/tripwire/etc/twcfg.txt       ←セキュリティのために、非暗号化の設定ファイルを削除する
+
+        ・ポリシーパス
+          # cp /usr/local/tripwire/etc/twpol.txt /usr/local/tripwire/etc/twpol.txt.bak      ←　ポリシーファイルバックアップ
+          # vi /usr/local/tripwire/etc/twpol.txt    ←　ポリシーファイル編集
+            実行環境に応じて、修正します。
+          # /usr/local/tripwire/sbin/twadmin --create-polfile -S /usr/local/tripwire/etc/site.key /usr/local/tripwire/etc/twpol.txt
+            ←　暗号化ポリシーファイル作成
+          # rm -f /usr/local/tripwire/etc/twpol.txt     ←セキュリティのために、非暗号化のポリシーファイルを削除する
+      
+        ・初期化データ作成(今後、ファイルチェックはこのデータに基づいて、やります。)
+        # /usr/local/tripwire/sbin/tripwire --init  ←初期化(ポリシーパスファイルtm.pol作成) ※10分間以上かかるかもしれない
+      
+    ③Tripwite使用
+        ・ファイル変更チェック
+        # /usr/local/tripwire/sbin/tripwire --check
+      
+        ・定期自動ファイルチェック
+        ファイルチェックスクリプトはもう作成しました。(tripwire.sh)
+        定期自動ファイルチェック必要の場合はtripwire.shを/usr/local/tripwire/にコピーして、次のコマンドを実行してください
+        # chmod 700 /usr/local/tripwire/tripwire.sh
+        # crontab -e
+        #毎日03:00にtripwire(ファイル改竄検知)を行う
+        00 03 * * * /usr/local/tripwire/tripwire.sh
+
+        *************************************************************************************************************
+        *                                                                                                           *
+        * 定周期ファイル改竄検知の動作は次です。                                                                    *
+        * ・ファイル改竄検知                                                                                        *
+        * ・古い基準データ削除                                                                                      *
+        * ・新たの基準データ作成(変更循環検知しない)                                                                *
+        * ・/usr/local/tripwire/lib/tripwire/report/localhost.localdomain-20140515-152312.twr ようなログに記入する  *
+        *                                                                                                           *
+        *************************************************************************************************************
+        
+        ・ファイル変更チェックの結果の検査
+        ファイル変更チェックの結果は次のフォルダに保存されています
+        /usr/local/tripwire/lib/tripwire/report
+        結果を見るコマンドは次です。
+        # /usr/local/tripwire/sbin/twprint -m r --twrfile /usr/local/tripwire/lib/tripwire/report/****.twr
+      
+        ※tripwireについて、もっと詳細の使い方は「http://kajuhome.com/tripwire.shtml」を参照してください

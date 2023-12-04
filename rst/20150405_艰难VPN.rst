@@ -1,0 +1,450 @@
+艰难VPN
+########
+
+:title: 艰难VPN
+:date: 2015-04-05 13:00
+:category: 整理
+:tags: VPS, VPN, PPP, L2TP, IPSec, PPTP, OpenVPN 
+:author: Hanbin
+
+------
+
+前些天买了个vps，在上面搭建个VPN玩玩。
+想是利用工具搭建，无非就是安装，调参数什么的，
+但实际上却花费了一个星期的时间，稍不留神就掉坑里了。
+
+------
+
+VPN
+====
+
+VPN(Virtual Private Network),专用虚拟网络，
+
+简单理解就是构建一个虚拟的网络，
+加入到这个网络里的互联网终端就像在同一个局域网络一样，
+相互间可直接进行通信，资源共享等。
+VPN的应用有着较强的目的性，在企业内部网中有着广泛应用。
+虽然VPN并未强调加密性，但它应用的场景决定了不加密的VPN几乎没人需要。
+
+VPN实现方式
+============
+
+常用的实现方式大体有如下几种：
+
+* pptp
+* l2tp (需配合ipsec实现加密)
+* ipsec
+* openvpn
+
+pptp
+====
+
+pptp(Point-to-Point　Tunneling　Protocol)点对点隧道协议，
+
+就是在网络上两个终端之间安全传输数据的一个协议，
+涉及并利用到了 **ppp** 协议， **gre** 协议， **tcp/ip** 协议。
+加密方式这里简单提一下 **MS-CHAP-V2** 和 **mppe** 。
+
+**ppp** 是什么，Point　to　Point　Protocol是用来在两个网络终端间
+建立一条链路，数据可准确完整的送达的协议.
+
+工作在OSI七层协议中的第二层-链路层.有了网线，有了支持ppp的设备，就可以通信了，相当底层的一个协议。
+
+具有错误检测与纠错，数据压缩，身份验证等功能。
+日常生活中也经常会遇到，比如宽带拨号上网(pppoe)时就包含了ppp协议。
+
+在pptp中，只是建立了一个虚拟的ppp通路。
+
+**gre** (Generic　Routing　Encapsulation)中文名为通用路由封装协议。
+
+能干的工作就是将某些网络协议的报文封装，并在另一个网络协议中传输,
+于目的地解封后，又可以按照原协议处理的这么一个东西。
+
+比如我开着一辆汽车，它只能在陆地上跑(陆地协议)，遇到海峡过不去怎么办，
+那就找个能在海上跑(海协议)的船(gre)把我的车运过去，到岸后又可以
+继续开着我的车上路。当然这个过程中需要开车上船(封装)，和开车下船(解封)。
+  
+**tcp/ip** 不说了，在pptpt中是传输数据的依托。
+  
+前文提到没有加密措施的VPN几乎没有人用。pptp本身是不支持加密的，
+但可以配合chap和mppe等实现安全性(属于ppp协议支持的范畴)。
+  
+**chap** (Challenge-Handshake Authentication Protocol)
+即挑战握手协议，用于验证身份协议，在pptp中主要负责在建立ppp链路后验明正身。
+
+目前常用的是ms-chap-v2版本。
+  
+**mppe** (Microsoft Point-to-Point Encryption)是微软设计的，
+用于链路层安全的协议。在pptp中主要负责通信数据包的加密。
+
+现假设有一个待接入VPN的客户端，称为PAC，另有一个VPN服务器，称为PNS。
+PAC与PNS之间通过互联网相连。那么VPN的介入过程大体如下：
+
+::
+
+    1.PAC现有数据 **|DATA|** 需要传输到VPN。
+    2.首先在原数据上进行PPP封装，得到 **|PPP|DATA|** 。
+    3.再进行gre封装，得到数据 **|GRE|PPP|DATA|** 。
+    4.将上述数据放到互联网上传输，利用TCP/IP协议，即 **|IP|GRE|PPP|DATA|** 。
+    5.经各网络设备到达PNS端的数据为 **|GRE|PPP|DATA|** 。
+    6.PNS进行GRE解封得到 **|PPP|DATA|** ，至此PAC与PNS可以认为构建了PPP链路。
+    7.若有一新的客户端PAC2也以同样方式连接到了PNS，则PAC，PAC2可以通过PNS为中转进行通信。实现了这个中转就实现了VPN的功能。
+    8.中转的实现实际上就是ppp的实现，即虚拟一个ppp网卡(比如ppp0)，至此，VPN实现。
+
+l2tp
+====
+
+l2tp(Layer 2 Tunneling Protocol，二层隧道协议),同pptp类似，也是利用PPP协议
+实现VPN功能，只不过取代了pptp中的gre协议，隧道中的数据格式如下：
+
+**|IP(TCP/UDP)|L2TP|PPP|DATA|**
+
+l2tp可以使用TCP或UDP来传输数据，相比pptp对网络的要求较低，
+l2tp本身只是封装协议同pptp相同，需要借助额外的手段来保证安全.
+
+常用的有借用ppp的chap来实现身份验证，或借助ipsec等来实现身份验证和数据加密。
+
+ipsec
+=====
+
+ipsec(Internet Protocol Security),从名字就可以看出大概来，
+就是要保护建立在ip协议下的通信安全。
+
+准确说它是一系列协议的统称，大方面包含了 **认证安全** (IKE)与 **数据传输安全** (AH或ESP)。
+具体分为两种工作模式: **传输模式** 与 **隧道模式** 。
+ipsec工作在OSI七层协议中的第三层，因此需要自己解决数据包的可靠性等问题。
+个人觉得ipsec在这些实现方式中是最复杂的。
+
+openvpn
+========
+
+openvpn比较特殊，相比于上述其他实现方式，它没有特殊的协议，仅是构建于SSL之上。
+
+那SSL在我们平时上网的时候都会利用到，因此基本连入互联网(TCP/UDP)的终端都可以使用它。
+
+openvpn实现主要包含虚拟网卡，身份验证，SSL通信等部分。
+
+虚拟网卡是实现VPN功能的核心。
+
+身份验证提供了密钥，证书等方式.
+
+SSL(v3)通信目前是很安全的一种保密措施，支持使用UDP(推荐)或TCP通信。
+
+以下为几种VPN实现方式的简单对比：
+
+============= ======================== ========================= ========================= ========= ================
+  VPN          pptp                     l2tp                      l2tp/ipsec                ipsec     openvpn
+============= ======================== ========================= ========================= ========= ================
+  要求协议      ppp,gre                  l2tp                      l2tp,ipsec                ipsec     ssl,udp(tcp)
+  加密方式      ppp,mppe                 ppp                       l2tp,ipsec                ipsec     SSL,密码
+  安全性        基本                     弱                        强                        强        强
+  资源占用      低                       低                        高                        高        高
+ 原生支持平台  windows,ios,osx,android   -                         windows,ios,osx,android   ios,osx   -
+============= ======================== ========================= ========================= ========= ================
+
+openvpn在windows，ios，osx，linuxandroid下都有对应的客户端。
+较新内核的linux可以安装软件包支持上述所有方式。
+
+L2tp/IPSec 安装
+================
+
+不想安装客户端所以采用了L2tp/IPSec的方式在vps上架设VPN。
+通过上面介绍，该方式需要ppp,l2tp和ipsec的支持，
+
+环境
+----
+
+我的环境是 Onamae-VPS:Debian7.8
+  
+ppp安装
+--------
+
+ppp的控制器系统已经自带，可以不用安装。
+如需要可以apt-get　install　ppp来安装。
+
+xl2tpd
+--------
+
+l2tp需要安装xl2tpd来支持。
+
+可以用apt-get　install　xl2tpd来安装，也可以编译安装。
+编译安装时若要指定安装位置，可以设定PREFIX?值指向自己希望安装的位置，
+在依次执行make，make　install即可。
+安装过程中缺少相关库文件的话，可能需要额外安装lbpacp-dev包。
+
+本文写成时最新的xl2tp编译安装后并没有追加至系统服务service(init.d),
+如需要请新建xl2tpd文件，内容如下，放入/etc/init.d中，并追加至开机启动。
+做成后请不要忘记修改文件权限为可执行：sudo　chmod　755　xl2tpd
+
+.. code-block:: Sh
+
+    #! /bin/sh
+
+    ### BEGIN INIT INFO
+    # Provides:          xl2tpd l2tpd
+    # Required-Start:    $network $syslog $remote_fs
+    # Required-Stop:     $network $syslog $remote_fs
+    # Should-Start:      ipsec
+    # Should-Stop:       ipsec
+    # Default-Start:     2 3 4 5
+    # Default-Stop:      0 1 6
+    # Short-Description: layer 2 tunelling protocol daemon
+    # Description:       xl2tpd is usually used in conjunction with an ipsec
+    #                    daemon (such as openswan).
+    ### END INIT INFO
+
+    PATH=/usr/local/program/xl2tpd/sbin:/usr/local/program/xl2tpd/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+    DAEMON=/usr/local/program/xl2tpd/sbin/xl2tpd
+    NAME=xl2tpd
+    DESC=xl2tpd
+
+    test -x $DAEMON || exit 0
+
+    # Include xl2tpd defaults if available
+    if [ -f /etc/default/xl2tpd ] ; then
+            . /etc/default/xl2tpd
+    fi
+
+    PIDFILE=/var/run/$NAME.pid
+
+    set -e
+
+    case "$1" in
+      start)
+            echo -n "Starting $DESC: "
+            test -d ${XL2TPD_RUN_DIR:-/var/run/xl2tpd} || mkdir -p ${XL2TPD_RUN_DIR:-/var/run/xl2tpd}
+            start-stop-daemon --start --quiet --pidfile $PIDFILE \
+                    --exec $DAEMON -- $DAEMON_OPTS
+            echo "$NAME."
+            ;;
+      stop)
+            echo -n "Stopping $DESC: "
+            start-stop-daemon --oknodo --stop --quiet --pidfile $PIDFILE \
+                    --exec $DAEMON
+            echo "$NAME."
+            ;;
+      force-reload)
+            test -d ${XL2TPD_RUN_DIR:-/var/run/xl2tpd} || mkdir -p ${XL2TPD_RUN_DIR:-/var/run/xl2tpd}
+            # check whether $DAEMON is running. If so, restart
+            start-stop-daemon --stop --test --quiet --pidfile \
+                    $PIDFILE --exec $DAEMON \
+            && $0 restart \
+            || exit 0
+            ;;
+      restart)
+            test -d ${XL2TPD_RUN_DIR:-/var/run/xl2tpd} || mkdir -p ${XL2TPD_RUN_DIR:-/var/run/xl2tpd}
+            echo -n "Restarting $DESC: "
+            start-stop-daemon --oknodo --stop --quiet --pidfile \
+                    $PIDFILE --exec $DAEMON
+            sleep 1
+            start-stop-daemon --start --quiet --pidfile \
+                    $PIDFILE --exec $DAEMON -- $DAEMON_OPTS
+            echo "$NAME."
+            ;;
+      *)
+            N=/etc/init.d/$NAME
+            echo "Usage: $N {start|stop|restart|force-reload}" >&2
+            exit 1
+            ;;
+    esac
+
+    exit 0
+
+openswan
+---------
+
+ipsec需要安装openswan来支持。
+
+本文写成的时，apt-get自动安装的版本是2.6.36,这个版本配合xl2tpd
+搭建的VPN **无法在ios下使用** (也可能是个人设置问题)。
+故 **选择编译安装** ，下载最新的2.6.43，若需要指定安装位置，
+请修改Makefile.inc文件中的INC_USRLOCAL为希望路径，
+执行make，make　install来安装。
+
+安装中若缺少文件，则可能需要安装libgmp3-dev包。
+
+**若采用编译安装且自定义安装位置时，请妥善解决路径引用问题，**
+**比如将自定义路径下的path软连接至/usr/sbin下等。**
+
+L2tp/IPSec 配置
+-----------------
+
+**修改各配置文件前请先备份原配置文件。**
+若采用编译安装，则下述配置文件可能尚未存在，
+此时新建即可。
+
+ppp配置
+----------
+
+ppp在这里用来验证用户名密码，
+编辑/etc/ppp/chap-secrets文件，追加自己的用户名密码，格式如下：
+
+::
+
+    [用户名]　[服务名]　[密码]　[指定的ip地址]
+    lixingke3650　l2tp　password　*
+
+其中服务名要与后文中xl2tpd的配置文件中的服务名相同。
+指定的ip地址也可以填写*，以自动分配。
+
+openswan配置
+--------------
+
+编辑文件/etc/ipsec.conf如下：
+
+.. code-block::  Conf
+
+    version 2.0
+    config setup
+        nat_traversal=yes
+        virtual_private=%v4:10.0.0.0/8,%v4:192.168.0.0/16,%v4:172.16.0.0/12
+        oe=off
+        protostack=netkey
+
+    conn L2TP-PSK-NAT
+        rightsubnet=0.0.0.0/0
+        also=L2TP-PSK-noNAT
+
+    conn L2TP-PSK-noNAT
+    #    forceencaps=yes
+        authby=secret
+        pfs=no
+        auto=add
+        keyingtries=3
+        rekey=no
+        ikelifetime=8h
+        keylife=1h
+        type=transport
+        left=xxx.xxx.xxx.xxx      # vps服务器外网IP
+        leftprotoport=17/1701
+        right=%any
+        rightprotoport=17/%any
+        dpdelay=40                # ios用
+        dpdtimeout=130            # ios用
+        dpdaction=clear           # ios用
+  
+编辑文件/etc/ipsec.secrets如下：
+
+::
+
+    xxx.xxx.xxx.xxx %any:  PSK "you　psk　password"  # 认证用密钥
+    其中xxx.xxx.xxx.xxx为该服务器的外网ip
+  
+xl2tpd配置
+------------
+
+编辑/etc/xl2tpd/xl2tpd.conf如下：
+
+.. code-block:: Conf
+
+    [global]
+    ipsec saref = yes
+
+    [lns default]
+    ip range = 10.10.10.11-10.10.10.19    # 指定VPN客户端ip分配范围
+    local ip = 10.10.10.1                 # 指定VPN中本机ip
+    refuse pap = yes                      # 认证协议设定,此处指定的协议为xl2tpd在linux内部转发时使用
+    require chap = yes                    # refuse为拒绝使用该协议，require为允许使用该协议
+    require authentication = yes
+    #ppp debug = yes
+    pppoptfile = /etc/ppp/xl2tpd-options  # 用于拨号的pppop的配置文件
+    length bit = yes
+
+编辑/etc/ppp/xl2tpd-options如下：
+
+.. code-block:: Conf
+
+    refuse-pap                            ; 认证协议设定,此处指定的协议为客户端登陆xl2tpd时使用
+    refuse-chap
+    refuse-mschap
+    require-mschap-v2                     ; 该设定为仅使用mschap-v2协议认证
+    ms-dns 8.8.8.8                        ; DNS服务器
+    ms-dns 8.8.4.4
+    asyncmap 0
+    auth
+    crtscts
+    lock
+    hide-password
+    modem
+    name l2tp                             ; 服务名,与上述ppp配置中的服务名相同
+    proxyarp
+    lcp-echo-interval 30
+    lcp-echo-failure 4
+  
+系统转发允许配置
+------------------
+
+VPN需要转发数据，linux默认是不允许的，
+请在文件/etc/sysctl.conf文件中追加如下内容。
+
+:: 
+
+    net.ipv4.ip_forward = 1
+    net.ipv4.conf.all.send_redirects = 0
+    net.ipv4.conf.all.accept_redirects = 0
+    net.ipv4.conf.default.send_redirects = 0
+    net.ipv4.conf.default.accept_redirects = 0
+    net.ipv4.conf.eth0.send_redirects = 0
+    net.ipv4.conf.eth0.accept_redirects = 0
+    net.ipv4.conf.lo.send_redirects = 0
+    net.ipv4.conf.lo.accept_redirects = 0
+    
+执行sysctl　-p生效。
+
+防火墙配置
+------------
+
+我使用的iptables防火墙没有添加规则，本应放行所有，
+但奇怪的是必须执行以下规则才可以使接入VPN的客户机联网。
+若你的防火墙有其他规则，请妥善设置。
+
+命令如下，需要注意的是eth0是网卡名，需根据机器情况设定。
+
+  iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+
+
+----
+
+20150410注：
+
+上述防火墙命令并不是追加防火墙规则，而是利用了iptables的nat实现地址转换，
+iptables包含了下述几个功能：
+::
+
+    1.PREROUTING
+    2.INPUT
+    3.FORWARD
+    4.OUTPUT
+    5.POSTROUTING
+
+这里利用POSTROUTING来转发数据。
+
+执行规则后，将发往eth0的数据的源ip地址都修改成VPN服务器IP地址。
+也可以执行
+
+    iptables -t nat -A POSTROUTING -s 10.10.10.0/255.255.255.0 -o eth0 -j SNAT --to-source VPN服务器ip
+
+    或
+
+    iptables -t nat -A POSTROUTING -o eth0 -j SNAT --to-source VPN服务器ip
+
+来实现相同功能。
+
+请注意SNAT与MASQUERADE的区别。
+  
+    SNAT: 指定一个或多个固定地址
+  
+    MASQUERADE： 动态从网卡获取当前IP地址
+
+
+----
+
+至此，l2tp/ipsecvpn服务器搭建完成，对于一个成熟的应用来说，
+配置量还真挺大。
+感觉配置文件什么的都贴上来很占篇幅，也许弄个文件链接比较好。
+
+以上。
+
+20150405
+
+上海。

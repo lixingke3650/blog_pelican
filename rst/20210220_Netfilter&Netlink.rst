@@ -1,0 +1,117 @@
+Netfilter&Netlink
+###################
+
+:title: Netfilter&Netlink
+:date: 2021-02-20 14:30
+:category: 整理
+:tags: Netfilter, Netlink
+:author: Hanbin
+
+------
+
+Netfilter
+===========
+
+五个hook点及其可选的操作：
+
+::
+
+  1. NF_INET_PRE_ROUTING: 位于路由之前，报文一致性检查之后（报文一致性检查包括: 报文版本、报文长度和checksum）。
+  2. NF_INET_LOCAL_IN: 位于报文经过路由之后，并且目的是本机的。
+  3. NF_INET_FORWARD: 位于在报文路由之后，目的地非本机的。
+  4. NF_INET_LOCAL_OUT: 由本机发出去的报文，并且在路由之前。
+  5. NF_INET_POST_ROUTING: 所有即将离开本机的报文。
+
+  1. NF_ACCEPT: 继续正常处理此报文，即允许报文通过。
+  2. NF_DROP: 丢弃此报文，不再进行继续处理，即拒绝此报文。
+  3. NF_STOLEN: 取走这个报文，不再继续处理。
+  4. NF_QUEUE: 报文进行重新排队，可以将报文发到用户空间的程序，进行修改或者决定是拒绝或者允许。
+  5.NF_REPEAT: 报文重新调用hook。
+
+nf_register_net_hook: 注册回调函数。
+
+nf_unregister_net_hook： 释放回调函数。
+
+
+Netfilter例子:
+
+.. code-block:: C
+
+    #include <linux/netfilter.h>
+    #include <linux/init.h>
+    #include <linux/module.h>
+    #include <linux/netfilter_ipv4.h>
+    #include <linux/ip.h>
+    #include <linux/inet.h>
+
+    static struct nf_hook_ops *nfho = NULL;
+
+    unsigned int my_hookfn(
+        void *priv, 
+        struct sk_buff *skb, 
+        const struct nf_hook_state *state)
+    {
+        struct iphdr *iph;
+        iph = ip_hdr(skb);
+
+        printk(KERN_INFO"src IP %pI4\n", &iph->saddr);
+        return NF_ACCEPT;
+    }
+
+    static int __init sknf_init(void)
+    {
+        nfho = (struct nf_hook_ops*)kcalloc(1, sizeof(struct nf_hook_ops), GFP_KERNEL);
+
+        nfho->hook = my_hookfn;
+        nfho->pf = PF_INET;
+        nfho->hooknum = NF_INET_LOCAL_IN;
+        nfho->priority = NF_IP_PRI_FIRST;
+
+        if (nf_register_net_hook(&init_net, nfho)) {
+            printk(KERN_ERR"nf_register_net_hook() failed\n");
+            return -1;
+        }
+        else {
+            printk(KERN_INFO"nf_register_net_hook() successful\n");
+        }
+        return 0;
+    }
+
+    static void __exit sknf_exit(void)
+    {
+        nf_unregister_net_hook(&init_net, nfho);
+        printk(KERN_INFO"nf_unregister_net_hook() successful\n");
+    }
+     
+    module_init(sknf_init);
+    module_exit(sknf_exit);
+    MODULE_AUTHOR("lixingke3650");
+    MODULE_LICENSE("GPL");
+    MODULE_DESCRIPTION("A simple example netfilter module.");
+    MODULE_VERSION("0.0.1");
+
+Makefile:
+
+.. code-block:: Makefile
+
+    KERNELRELEASE ?= $(shell uname -r)
+    KERNELDIR ?= /lib/modules/$(KERNELRELEASE)/build
+
+    PWD := $(shell pwd)
+
+    all: module
+
+    obj-m := netfilter.o
+
+    module:
+        @$(MAKE) -C $(KERNELDIR) M=$(PWD) modules
+
+    clean:
+        @$(MAKE) -C $(KERNELDIR) M=$(PWD) clean
+    #   rm -rf *.o *.ko *.mod.c .*.cmd *.markers *.order *.symvers .tmp_versions
+
+    .PHONY: all module clean
+
+
+End
+

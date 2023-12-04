@@ -1,0 +1,46 @@
+Netfilter&Netlink
+###################
+
+:title: Netfilter&Netlink
+:date: 2021-02-20 14:30
+:category: 整理
+:tags: Netfilter, Netlink
+:author: Hanbin
+
+------
+
+Netfilter
+===========
+
+五个hook点及其可选的操作：
+
+::
+
+  1. NF_INET_PRE_ROUTING: 位于路由之前，报文一致性检查之后（报文一致性检查包括: 报文版本、报文长度和checksum）。
+  2. NF_INET_LOCAL_IN: 位于报文经过路由之后，并且目的是本机的。
+  3. NF_INET_FORWARD: 位于在报文路由之后，目的地非本机的。
+  4. NF_INET_LOCAL_OUT: 由本机发出去的报文，并且在路由之前。
+  5. NF_INET_POST_ROUTING: 所有即将离开本机的报文。
+
+  1. NF_ACCEPT: 继续正常处理此报文，即允许报文通过。
+  2. NF_DROP: 丢弃此报文，不再进行继续处理，即拒绝此报文。
+  3. NF_STOLEN: 取走这个报文，不再继续处理。
+  4. NF_QUEUE: 报文进行重新排队，可以将报文发到用户空间的程序，进行修改或者决定是拒绝或者允许。
+  5.NF_REPEAT: 报文重新调用hook。
+
+nf_register_net_hook: 注册回调函数。
+
+nf_unregister_net_hook： 释放回调函数。
+
+
+
+
+
+T2
+++++
+
+T3
+^^^^
+
+End
+

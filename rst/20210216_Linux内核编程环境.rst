@@ -1,0 +1,118 @@
+Linux内核编译环境
+######################
+
+:title: Linux内核编程环境
+:date: 2021-02-16 14:30
+:category: 整理
+:tags: Kernel
+:author: Hanbin
+
+------
+
+编译
+=====
+
+obj-m
+++++++
+
+Makefile中使用  ``obj-m``  关键字指定模块名称。
+
+例如:
+
+::
+
+  obj-m := netfilter.o
+
+还有与之相对应的obj-y命令。
+
+
+装载
+=====
+
+
+insmod
+++++++++
+
+将编译出的模块(.ko)加载到内核中. 注意insmod只能加载指定目录的模块，且当该模块需要依赖其它尚未加载的模块时，本次加载失败。
+
+::
+
+  insmod ./netfilter.ko
+
+
+modules_install
+++++++++++++++++++
+
+将编译好的模块copy到内核模块目录下。例如:/lib/modules/5.4.0-65-generic/kernel/XXXX.  
+
+其中5.4.0-65-generic为当前使用中的内核版本。可通过  ``uname -r``  来查看。
+
+
+modeprobe
++++++++++++
+
+同样是加载模块到内核中，但modeprobe不需要指定目录，它会自动到内核模块目录下寻找名字一致的模块。
+
+modeprobe会自动载入当前加载模块的依赖模块。但需要提前使用  ``depmod``  命令生成依赖关系文件modules.dep。
+
+
+lsmod
+++++++
+
+列举已经加载到内核的模块。
+
+
+rmmod
+++++++
+
+卸载已经加载到内核的模块。
+
+
+代码
+======
+
+module_init
++++++++++++++
+
+模块被加载时执行。
+
+module_exit
++++++++++++++
+
+模块被卸载时执行。
+
+MODULE_AUTHOR
++++++++++++++++
+
+指定模块所属。
+
+MODULE_LICENSE
+++++++++++++++++
+
+指定模块许可。
+
+MODULE_DESCRIPTION
+++++++++++++++++++++
+
+模块描述。
+
+MODULE_VERSION
+++++++++++++++++
+
+模块版本。
+
+
+调试
+======
+
+printk
+++++++++
+
+printk输出到syslog(/var/log/syslog)而不是控制台。
+
+------
+
+20210216
+
+初五
+

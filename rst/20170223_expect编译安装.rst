@@ -1,0 +1,94 @@
+expect编译安装
+##################
+
+:title: expect编译安装
+:date: 2017-02-23 20:00
+:category: 整理
+:tags: except, 自动交互
+:author: Hanbin
+
+Expect是基于Tcl语言的，可以实现自动交互功能的工具。常被用于一些自动化处理的场合，可以模拟人工输入以实现全自动化无干预处理。
+
+因业务需要，想在公司服务器上安装这个工具，但又没有root权限。只好编译安装并指定工作目录了(没空搞新玩意,勉强充数吧)。
+
+----
+
+准备工作
+----------
+
+下载Tcl语言源码和except源码。
+
+Tcl: https://sourceforge.net/projects/tcl/files/Tcl/
+我下载的是当时最新的8.6.6。
+
+except: https://sourceforge.net/projects/expect/files/Expect/
+我下载的是当时最新的5.45。
+
+
+Tcl安装
+--------
+
+如果已经安装了Tcl，这步可以省略。
+
+1. 解压
+
+执行 tar -zxvf tcl8.6.6-src.tar.gz解压源码包，得到名为tcl8.6.6的源码文件夹。
+
+
+2. configure
+
+因为是公用服务器，并且我们没有root权限，所以最好安装到指定的私人目录下。
+进入tcl8.6.6\unix目录，执行 ./configure --prefix=/home/myuser/local 来准备环境。
+--prefix后面为安装目录。
+
+
+3. make
+
+configure无错误后，执行make来编译源码。
+
+
+4. make install
+
+make成功后，执行make install来复制相关文件到指定目录。
+成功后即完成了Tcl的安装。
+
+
+expect安装
+------------
+
+Tcl安装成功后方可编译安装expect。
+
+1. 解压
+
+执行 tar -zxvf expect5.45.tar.gz解压源码，得到名为expect5.45的源码文件夹。
+
+
+2. configure
+执行下面的命令，注意安装到个人文件夹下，并且利用--with-tcl来引用Tcl的库文件。
+./configure --prefix=/home/myuser/local --with-tcl=/home/myuser/local/lib
+
+
+3. make
+
+configure无错误后，执行make来编译源码。
+
+
+4. make install
+
+make成功后，执行make install来复制相关文件到指定目录。
+成功后即完成了expect的安装。 /home/myuser/local/bin中出现expect的执行程序。
+执行/home/myuser/local/bin/expect后，出现expect1.1>提示符即表明安装成功。
+
+
+使用
+------
+
+没有root权限的情况下，需要输入全路径名才可以启动成功，或者修改.bash_profile文件将/home/myuser/local/bin添加到path中。
+
+
+以上。
+
+20170223
+
+普罗旺斯Ⅲ
+
