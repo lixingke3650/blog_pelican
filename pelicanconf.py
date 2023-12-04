@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 
 AUTHOR = 'Hanbin'
 SITENAME = 'lixingke3650'
-SITEURL = 'http://127.0.0.1/blog'
+SITEURL = 'http://192.168.56.101:55180/blog'
 
 # PATH = 'content'
 #FEED_DOMAIN = 'static'
@@ -12,7 +12,7 @@ SITEURL = 'http://127.0.0.1/blog'
 
 TIMEZONE = 'Asia/Tokyo'
 
-DEFAULT_LANG = 'jp'
+DEFAULT_LANG = 'ja'
 
 # Feed generation is usually not desired when developing
 FEED_ALL_ATOM = None
@@ -47,7 +47,7 @@ DEFAULT_PAGINATION = 5
 
 # OUTPUT_PATH = '/root/home/hanbin/web/MySite/blog/'
 # OUTPUT_PATH = 'lixingke3650.github.io/output'
-OUTPUT_PATH = './html/'
+OUTPUT_PATH = './blog/'
 
 DISPLAY_PAGES_ON_MENU = 0
 DISPLAY_CATEGORIES_ON_MENU = 1
@@ -57,7 +57,7 @@ THEME = './themes/elegant'
 # For Elegant theme
 HOSTED_ON = {
     "name": 'Lixingke3650',
-    "url": 'http://133.167.106.55'
+    "url": 'http://192.168.56.101:55180'
 }
 
 LANDING_PAGE_TITLE = "Welcome to lixingke3650's personal blog!"

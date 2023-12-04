@@ -47,7 +47,7 @@ DEFAULT_PAGINATION = 5
 
 # OUTPUT_PATH = '/root/home/hanbin/web/MySite/blog/'
 # OUTPUT_PATH = 'lixingke3650.github.io/output'
-OUTPUT_PATH = './preview/html'
+OUTPUT_PATH = './preview/blog'
 
 DISPLAY_PAGES_ON_MENU = 0
 DISPLAY_CATEGORIES_ON_MENU = 1

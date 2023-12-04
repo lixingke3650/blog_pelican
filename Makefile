@@ -8,7 +8,7 @@ PELICANOPTS=
 SOURCEPATH=/home/hanbin/Dropbox/CodeCentre/blog/rst
 INPUTPATH=./rst
 RESOURCE=resource
-OUTPATH=./html
+OUTPATH=./blog
 GITPATH=https://github.com/lixingke3650
 CACHE=__pycache__
 
@@ -18,7 +18,7 @@ CONFFILE=./pelicanconf.py
 PREVIEWCONFFILE=./pelicanconf_preview.py
 PREVIEWDIR=preview
 PREVIEWINPUTPATH=./$(PREVIEWDIR)
-PREVIEWOUTPUTPATH=$(PREVIEWINPUTPATH)/html
+PREVIEWOUTPUTPATH=$(PREVIEWINPUTPATH)/blog
 PREVIEWHTMLPATH=$(OUTPATH)/$(PREVIEWDIR)
 
 help:

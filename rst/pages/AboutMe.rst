@@ -2,7 +2,6 @@
 :date: 2019-01-14 7:30:47 +0100
 :layout: page
 :status: hidden
-:slug: anding-page-about-hidden
 :author: Hanbin
 :slug: landing-page-about-hidden
 
